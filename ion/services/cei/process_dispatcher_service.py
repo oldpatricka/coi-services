@@ -10,7 +10,7 @@ import json
 
 import gevent
 
-from pyon.public import log
+from pyon.public import log, RT
 from pyon.core.exception import NotFound, BadRequest
 from pyon.util.containers import create_valid_identifier
 from pyon.event.event import EventPublisher
@@ -127,6 +127,11 @@ class ProcessDispatcherService(BaseProcessDispatcherService):
         @throws NotFound    object with specified id does not exist
         """
         self.backend.delete_definition(process_definition_id)
+
+    def list_process_definitions(self):
+        """Lists all Process Definitions
+        """
+        return self.backend.list_definitions()
 
     def associate_execution_engine(self, process_definition_id='', execution_engine_definition_id=''):
         """Declare that the given process definition is compatible with the given execution engine.
@@ -269,6 +274,10 @@ class PDLocalBackend(object):
 
     def delete_definition(self, definition_id):
         return self.rr.delete(definition_id)
+
+    def list_definitions(self):
+        procs, _ = self.rr.find_resources(restype=RT.ProcessDefinition, id_only=True)
+        return procs
 
     def spawn(self, name, definition, schedule, configuration):
 
@@ -551,6 +560,9 @@ class PDNativeBackend(object):
     def delete_definition(self, definition_id):
         return self.core.remove_definition(definition_id)
 
+    def list_definitions(self):
+        return self.core.list_definitions()
+
         #TODO mirror to RR when available
 
     def spawn(self, name, definition, schedule, configuration):
@@ -706,6 +718,9 @@ class PDBridgeBackend(object):
     def delete_definition(self, definition_id):
         return self.dashi.call(self.topic, "remove_definition",
             definition_id=definition_id)
+
+    def list_definitions(self):
+        return self.dashi.call(self.topic, "list_definitions")
 
     def spawn(self, name, definition, schedule, configuration):
 

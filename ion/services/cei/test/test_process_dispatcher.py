@@ -75,7 +75,6 @@ class ProcessDispatcherServiceLocalTest(PyonTestCase):
         # not used for anything in local mode
         proc_schedule = DotDict()
 
-
         configuration = {"some": "value"}
 
         self.pd_service.schedule_process("fake-process-def-id",
@@ -292,11 +291,16 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
         self.mock_core.describe_definition.return_value = dict(name="someprocess",
             executable=executable)
+        self.mock_core.list_definitions.return_value = ["someprocess"]
 
         definition2 = self.pd_service.read_process_definition("someprocess")
         assert self.mock_core.describe_definition.called
         self.assertEqual(definition2.name, "someprocess")
         self.assertEqual(definition2.executable, executable)
+
+        definition_list = self.pd_service.list_process_definitions()
+        assert self.mock_core.list_definitions.called
+        self.assertEqual([definition.name], definition_list)
 
         self.pd_service.delete_process_definition("someprocess")
         assert self.mock_core.remove_definition.called
@@ -437,6 +441,12 @@ class ProcessDispatcherServiceBridgeTest(PyonTestCase):
         assert self.mock_dashi.call.called
         self.assertEqual(definition2.name, "someprocess")
         self.assertEqual(definition2.executable, executable)
+
+        self.mock_dashi.call.reset_mock()
+        self.mock_dashi.call.return_value = ["someprocess"]
+        definition_list = self.pd_service.list_process_definitions()
+        assert self.mock_dashi.call.called
+        self.assertEqual([definition.name], definition_list)
 
         self.mock_dashi.call.reset_mock()
         self.pd_service.delete_process_definition("someprocess")
@@ -658,8 +668,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
                 'launch_type': {
                     'name': 'pyon',
                     'persistence_directory': self.persistence_directory,
-                    },
                 },
+            },
             'agent': {'resource_id': self.resource_id},
         }
 
