@@ -32,9 +32,9 @@ try:
     from epu.processdispatcher.engines import domain_id_from_engine
     _HAS_EPU = True
 except ImportError:
-    InstanceState = None
-    domain_id_from_engine = None
-    _HAS_EPU = False
+    InstanceState = None  # noqa
+    domain_id_from_engine = None  # noqa
+    _HAS_EPU = False  # noqa
 
 # NOTE: much of the Process Dispatcher functionality is tested directly in the
 # epu repository where the code resides. This file only attempts to test the
@@ -86,7 +86,8 @@ class ProcessDispatcherServiceLocalTest(PyonTestCase):
         if backend.SPAWN_DELAY:
 
             with patch("gevent.spawn_later") as mock_gevent:
-                self.pd_service.schedule_process("fake-process-def-id",
+                self.pd_service.schedule_process(
+                    "fake-process-def-id",
                     proc_schedule, configuration, pid)
 
                 self.assertTrue(mock_gevent.called)
@@ -99,8 +100,8 @@ class ProcessDispatcherServiceLocalTest(PyonTestCase):
             backend._inner_spawn(*spawn_args)
 
         else:
-            self.pd_service.schedule_process("fake-process-def-id", proc_schedule,
-                configuration, pid)
+            self.pd_service.schedule_process(
+                "fake-process-def-id", proc_schedule, configuration, pid)
 
         self.assertTrue(pid.startswith(proc_def.name) and pid != proc_def.name)
         self.assertEqual(self.mock_cc_spawn.call_count, 1)
@@ -136,8 +137,8 @@ class ProcessDispatcherServiceLocalTest(PyonTestCase):
         self.mock_rr.read.side_effect = NotFound()
 
         with self.assertRaises(NotFound):
-            self.pd_service.schedule_process("not-a-real-process-id",
-                proc_schedule, configuration)
+            self.pd_service.schedule_process(
+                "not-a-real-process-id", proc_schedule, configuration)
 
         self.mock_rr.read.assert_called_once_with("not-a-real-process-id")
 
@@ -188,7 +189,7 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
             NotFound: FakeDashiNotFoundError,
             BadRequest: FakeDashiBadRequestError,
             Conflict: FakeDashiWriteConflictError
-            }
+        }
 
         self.pd_dashi_handler = PDDashiHandler(self.mock_backend, self.mock_dashi)
 
@@ -200,8 +201,8 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
         name = "whataname"
         description = "describing stuff"
 
-        self.pd_dashi_handler.create_definition(definition_id, definition_type,
-                executable, name, description)
+        self.pd_dashi_handler.create_definition(
+            definition_id, definition_type, executable, name, description)
         self.assertEqual(self.mock_backend.create_definition.call_count, 1)
 
         self.pd_dashi_handler.describe_definition(definition_id)
@@ -210,15 +211,15 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
         self.pd_dashi_handler.describe_definition(definition_name=name)
         self.assertEqual(self.mock_backend.read_definition_by_name.call_count, 1)
 
-        self.pd_dashi_handler.update_definition(definition_id, definition_type,
-            executable, name, description)
+        self.pd_dashi_handler.update_definition(
+            definition_id, definition_type, executable, name, description)
         self.assertEqual(self.mock_backend.update_definition.call_count, 1)
 
         self.pd_dashi_handler.remove_definition(definition_id)
         self.assertEqual(self.mock_backend.delete_definition.call_count, 1)
 
         with patch('ion.services.cei.process_dispatcher_service._PYON_DASHI_EXC_MAP',
-                self.mock_pyon_dashi_exc_map):
+                   self.mock_pyon_dashi_exc_map):
 
             with self.assertRaises(FakeDashiBadRequestError):
                 self.pd_dashi_handler.list_definitions()
@@ -230,7 +231,7 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
     def test_exception_map(self):
         # only testing one of the handlers. assuming they all share the decorator
         with patch('ion.services.cei.process_dispatcher_service._PYON_DASHI_EXC_MAP',
-                self.mock_pyon_dashi_exc_map):
+                   self.mock_pyon_dashi_exc_map):
 
             self.mock_backend.read_definition.side_effect = NotFound()
             with self.assertRaises(FakeDashiNotFoundError):
@@ -259,7 +260,8 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
         queueing_mode = 'RESTART_ONLY'
         restart_mode = 'ABNORMAL'
 
-        self.pd_dashi_handler.schedule_process(upid, definition_id,
+        self.pd_dashi_handler.schedule_process(
+            upid, definition_id,
             queueing_mode=queueing_mode, restart_mode=restart_mode, name=name)
 
         self.assertEqual(self.mock_backend.schedule.call_count, 1)
@@ -280,7 +282,8 @@ class ProcessDispatcherServiceDashiHandlerTest(PyonTestCase):
         queueing_mode = 'RESTART_ONLY'
         restart_mode = 'ABNORMAL'
 
-        self.pd_dashi_handler.schedule_process(upid, definition_name=definition_name,
+        self.pd_dashi_handler.schedule_process(
+            upid, definition_name=definition_name,
             queueing_mode=queueing_mode, restart_mode=restart_mode)
 
         self.mock_backend.read_definition_by_name.assert_called_once_with(definition_name)
@@ -313,13 +316,14 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
         self.pd_service.container.proc_manager['procs'] = {}
 
         pdcfg = dict(dashi_uri="amqp://hello", dashi_exchange="123",
-            static_resources=True, backend="native")
+                     static_resources=True, backend="native")
         self.pd_service.CFG = DotDict()
         self.pd_service.CFG['processdispatcher'] = pdcfg
 
         self.mock_dashi = Mock()
 
-        with patch.multiple('ion.services.cei.process_dispatcher_service',
+        with patch.multiple(
+                'ion.services.cei.process_dispatcher_service',
                 get_dashi=DEFAULT, ProcessDispatcherCore=DEFAULT,
                 get_processdispatcher_store=DEFAULT, EngineRegistry=DEFAULT,
                 PDMatchmaker=DEFAULT, PDDoctor=DEFAULT) as mocks:
@@ -364,8 +368,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
         configuration = {"some": "value"}
 
-        pid2 = self.pd_service.schedule_process("fake-process-def-id",
-            proc_schedule, configuration, pid)
+        pid2 = self.pd_service.schedule_process(
+            "fake-process-def-id", proc_schedule, configuration, pid)
 
         self.assertTrue(pid.startswith(proc_def.name) and pid != proc_def.name)
         self.assertEqual(pid, pid2)
@@ -427,8 +431,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
         configuration = {"some": "value"}
 
-        pid2 = self.pd_service.schedule_process("fake-process-def-id",
-            proc_schedule, configuration, pid)
+        self.pd_service.schedule_process(
+            "fake-process-def-id", proc_schedule, configuration, pid)
 
         self.assertEqual(self.mock_core.schedule_process.call_count, 1)
         call_args, call_kwargs = self.mock_core.schedule_process.call_args
@@ -453,8 +457,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
         configuration = {"some": "value"}
 
-        pid2 = self.pd_service.schedule_process("fake-process-def-id",
-            proc_schedule, configuration, pid)
+        self.pd_service.schedule_process(
+            "fake-process-def-id", proc_schedule, configuration, pid)
 
         self.assertEqual(self.mock_core.schedule_process.call_count, 1)
         call_args, call_kwargs = self.mock_core.schedule_process.call_args
@@ -480,8 +484,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
         configuration = {"some": "value"}
 
-        pid2 = self.pd_service.schedule_process("fake-process-def-id",
-            proc_schedule, configuration, pid)
+        self.pd_service.schedule_process(
+            "fake-process-def-id", proc_schedule, configuration, pid)
 
         self.assertEqual(self.mock_core.schedule_process.call_count, 1)
         call_args, call_kwargs = self.mock_core.schedule_process.call_args
@@ -504,8 +508,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
         self.assertTrue(pd_id)
         assert self.mock_rr.create.called_once_with(definition, object_id=pd_id)
 
-        self.mock_core.describe_definition.return_value = dict(name="someprocess",
-            executable=executable)
+        self.mock_core.describe_definition.return_value = dict(
+            name="someprocess", executable=executable)
 
         definition2 = self.pd_service.read_process_definition("someprocess")
         assert self.mock_core.describe_definition.called
@@ -518,8 +522,8 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
 
     def test_read_process(self):
 
-        self.mock_core.describe_process.return_value = dict(upid="processid",
-            state="500-RUNNING")
+        self.mock_core.describe_process.return_value = dict(
+            upid="processid", state="500-RUNNING")
         proc = self.pd_service.read_process("processid")
         assert self.mock_core.describe_process.called
 
@@ -532,13 +536,13 @@ class ProcessDispatcherServiceNativeTest(PyonTestCase):
         self.mock_core.describe_process.return_value = None
 
         with self.assertRaises(NotFound):
-            proc = self.pd_service.read_process("processid")
+            self.pd_service.read_process("processid")
         assert self.mock_core.describe_process.called
 
     def test_read_process_with_config(self):
         config = {"hats": 4}
-        self.mock_core.describe_process.return_value = dict(upid="processid",
-            state="500-RUNNING", configuration=config)
+        self.mock_core.describe_process.return_value = dict(
+            upid="processid", state="500-RUNNING", configuration=config)
         proc = self.pd_service.read_process("processid")
         assert self.mock_core.describe_process.called
 
@@ -631,7 +635,8 @@ class ProcessDispatcherServiceIntTest(IonIntegrationTestCase):
         pid = self.pd_cli.create_process(self.process_definition_id)
         self.waiter.start(pid)
 
-        pid2 = self.pd_cli.schedule_process(self.process_definition_id,
+        pid2 = self.pd_cli.schedule_process(
+            self.process_definition_id,
             process_schedule, configuration={}, process_id=pid, name=proc_name)
         self.assertEqual(pid, pid2)
 
@@ -665,8 +670,8 @@ class ProcessDispatcherServiceIntTest(IonIntegrationTestCase):
 
         self.waiter.await_state_event(pid, ProcessStateEnum.TERMINATED)
 
-        pid2 = self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, configuration={}, process_id=pid)
+        pid2 = self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, configuration={}, process_id=pid)
         self.assertEqual(pid, pid2)
 
         self.waiter.await_state_event(pid, ProcessStateEnum.RUNNING)
@@ -693,7 +698,8 @@ class ProcessDispatcherServiceIntTest(IonIntegrationTestCase):
         test_response = uuid.uuid4().hex
         configuration = {"test_response": test_response}
 
-        pid2 = self.pd_cli.schedule_process(self.process_definition_id,
+        pid2 = self.pd_cli.schedule_process(
+            self.process_definition_id,
             process_schedule, configuration=configuration, process_id=pid)
         self.assertEqual(pid, pid2)
 
@@ -724,7 +730,8 @@ class ProcessDispatcherServiceIntTest(IonIntegrationTestCase):
         o = ProcessTarget()
 
         with self.assertRaises(BadRequest) as ar:
-            self.pd_cli.schedule_process(self.process_definition_id,
+            self.pd_cli.schedule_process(
+                self.process_definition_id,
                 process_schedule, configuration={"bad": o})
         self.assertTrue(ar.exception.message.startswith("bad configuration"))
 
@@ -739,7 +746,6 @@ class ProcessDispatcherServiceIntTest(IonIntegrationTestCase):
         definition = ProcessDefinition(name="test_process", executable=executable)
         with self.assertRaises(BadRequest):
             self.pd_cli.create_process_definition(definition)
-
 
 pd_config = {
     'processdispatcher': {
@@ -798,10 +804,10 @@ def _get_eeagent_config(node_id, persistence_dir, slots=100, resource_id=None):
             'launch_type': {
                 'name': 'pyon',
                 'persistence_directory': persistence_dir,
-                },
             },
+        },
         'agent': {'resource_id': resource_id},
-        }
+    }
 
 
 @unittest.skipIf(_HAS_EPU is False, 'epu dependency not available')
@@ -816,13 +822,13 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         self._start_container()
         from pyon.public import CFG
 
-        self.container_client = ContainerAgentClient(node=self.container.node,
-            name=self.container.name)
+        self.container_client = ContainerAgentClient(
+            node=self.container.node, name=self.container.name)
         self.container = self.container_client._get_container_instance()
 
         app = dict(name="process_dispatcher", processapp=("process_dispatcher",
-                               "ion.services.cei.process_dispatcher_service",
-                               "ProcessDispatcherService"))
+                   "ion.services.cei.process_dispatcher_service",
+                   "ProcessDispatcherService"))
         self.container.start_app(app, config=pd_config)
 
         self.rr_cli = self.container.resource_registry
@@ -839,11 +845,12 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         self._eea_pid_to_persistence_dir = {}
         self._tmpdirs = []
 
-        self.dashi = get_dashi(uuid.uuid4().hex,
+        self.dashi = get_dashi(
+            uuid.uuid4().hex,
             pd_config['processdispatcher']['dashi_uri'],
             pd_config['processdispatcher']['dashi_exchange'],
             sysname=CFG.get_safe("dashi.sysname")
-            )
+        )
 
         #send a fake node_state message to PD's dashi binding.
         self.node1_id = uuid.uuid4().hex
@@ -854,7 +861,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
 
     def _send_node_state(self, engine_id, node_id=None):
         node_id = node_id or uuid.uuid4().hex
-        node_state = dict(node_id=node_id, state=InstanceState.RUNNING,
+        node_state = dict(
+            node_id=node_id, state=InstanceState.RUNNING,
             domain_id=domain_id_from_engine(engine_id))
         self.dashi.fire(get_pd_dashi_name(), "node_state", args=node_state)
 
@@ -863,10 +871,10 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
             persistence_dir = tempfile.mkdtemp()
             self._tmpdirs.append(persistence_dir)
         resource_id = resource_id or uuid.uuid4().hex
-        agent_config = _get_eeagent_config(node_id, persistence_dir,
-            resource_id=resource_id)
-        pid = self.container_client.spawn_process(name="eeagent",
-            module="ion.agents.cei.execution_engine_agent",
+        agent_config = _get_eeagent_config(
+            node_id, persistence_dir, resource_id=resource_id)
+        pid = self.container_client.spawn_process(
+            name="eeagent", module="ion.agents.cei.execution_engine_agent",
             cls="ExecutionEngineAgent", config=agent_config)
         log.info('Agent pid=%s.', str(pid))
         self._eea_pids.append(pid)
@@ -903,8 +911,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         pid = self.pd_cli.create_process(self.process_definition_id)
         self.waiter.start()
 
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid)
 
         self.waiter.await_state_event(pid, ProcessStateEnum.WAITING)
 
@@ -919,8 +927,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
 
         rejected_pid = self.pd_cli.create_process(self.process_definition_id)
 
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=rejected_pid)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=rejected_pid)
 
         self.waiter.await_state_event(rejected_pid, ProcessStateEnum.REJECTED)
 
@@ -941,23 +949,23 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
 
         pid2 = self.pd_cli.create_process(self.process_definition_id)
 
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid2)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid2)
 
         self.waiter.await_state_event(pid2, ProcessStateEnum.RUNNING)
 
         # one more with node exclusive
 
-        process_target = ProcessTarget(execution_engine_id="engine2",
-            node_exclusive="hats")
+        process_target = ProcessTarget(
+            execution_engine_id="engine2", node_exclusive="hats")
         process_schedule = ProcessSchedule()
         process_schedule.queueing_mode = ProcessQueueingMode.NEVER
         process_schedule.target = process_target
 
         pid3 = self.pd_cli.create_process(self.process_definition_id)
 
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid3)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid3)
 
         self.waiter.await_state_event(pid3, ProcessStateEnum.RUNNING)
 
@@ -995,14 +1003,14 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         pid1 = self.pd_cli.create_process(self.process_definition_id)
         self.waiter.start()
 
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid1)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid1)
 
         self.waiter.await_state_event(pid1, ProcessStateEnum.RUNNING)
 
         pid2 = self.pd_cli.create_process(self.process_definition_id)
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid2)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid2)
         self.waiter.await_state_event(pid2, ProcessStateEnum.WAITING)
 
         # now demonstrate that the node itself is not full by launching
@@ -1011,8 +1019,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
 
         process_target.node_exclusive = None
         pid3 = self.pd_cli.create_process(self.process_definition_id)
-        self.pd_cli.schedule_process(self.process_definition_id,
-            process_schedule, process_id=pid3)
+        self.pd_cli.schedule_process(
+            self.process_definition_id, process_schedule, process_id=pid3)
         self.waiter.await_state_event(pid3, ProcessStateEnum.RUNNING)
 
         # finally, add a second node to the engine. pid2 should be started
@@ -1033,16 +1041,18 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
     def test_code_download(self):
         # create a process definition that has no URL; only module and class.
         process_definition_no_url = ProcessDefinition(name='test_process_nodownload')
-        process_definition_no_url.executable = {'module': 'ion.my.test.process',
-                'class': 'TestProcess'}
+        process_definition_no_url.executable = {
+            'module': 'ion.my.test.process',
+            'class': 'TestProcess'}
         process_definition_id_no_url = self.pd_cli.create_process_definition(process_definition_no_url)
 
         # create another that has a URL of the python file (this very file)
         # verifies L4-CI-CEI-RQ114
         url = "file://%s" % os.path.join(os.path.dirname(__file__), 'test_process_dispatcher.py')
         process_definition = ProcessDefinition(name='test_process_download')
-        process_definition.executable = {'module': 'ion.my.test.process',
-                'class': 'TestProcess', 'url': url}
+        process_definition.executable = {
+            'module': 'ion.my.test.process',
+            'class': 'TestProcess', 'url': url}
         process_definition_id = self.pd_cli.create_process_definition(process_definition)
 
         process_target = ProcessTarget()
@@ -1055,16 +1065,16 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         # Test a module with no download fails
         pid_no_url = self.pd_cli.create_process(process_definition_id_no_url)
 
-        self.pd_cli.schedule_process(process_definition_id_no_url,
-            process_schedule, process_id=pid_no_url)
+        self.pd_cli.schedule_process(
+            process_definition_id_no_url, process_schedule, process_id=pid_no_url)
 
         self.waiter.await_state_event(pid_no_url, ProcessStateEnum.FAILED)
 
         # Test a module with a URL runs
         pid = self.pd_cli.create_process(process_definition_id)
 
-        self.pd_cli.schedule_process(process_definition_id,
-            process_schedule, process_id=pid)
+        self.pd_cli.schedule_process(
+            process_definition_id, process_schedule, process_id=pid)
 
         self.waiter.await_state_event(pid, ProcessStateEnum.RUNNING)
 
@@ -1077,7 +1087,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         pid_listen_name = "PDtestproc_%s" % uuid.uuid4().hex
         config = {'process': {'listen_name': pid_listen_name}}
 
-        self.pd_cli.schedule_process(self.process_definition_id,
+        self.pd_cli.schedule_process(
+            self.process_definition_id,
             process_schedule, process_id=pid, configuration=config)
 
         client = TestClient(to_name=pid_listen_name)
@@ -1127,8 +1138,8 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         for pid in all_pids:
             self.container.terminate_process(pid)
 
-        self._start_eeagent(self.node1_id, resource_id=resource_id,
-            persistence_dir=persistence_dir)
+        self._start_eeagent(
+            self.node1_id, resource_id=resource_id, persistence_dir=persistence_dir)
 
         # wait for restartables to restart
         self.waiter.await_many_state_events(restartable_pids, ProcessStateEnum.RUNNING)
@@ -1163,14 +1174,16 @@ class ProcessDispatcherEEAgentIntTest(ProcessDispatcherServiceIntTest):
         self.assertEqual(proc.process_id, pid)
         self.assertEqual(proc.process_state, ProcessStateEnum.REQUESTED)
 
-        pid2 = self.pd_cli.schedule_process(self.process_definition_id,
+        pid2 = self.pd_cli.schedule_process(
+            self.process_definition_id,
             process_schedule, configuration={}, process_id=pid, name=proc_name)
         self.assertEqual(pid, pid2)
 
         self.waiter.await_state_event(pid, ProcessStateEnum.RUNNING)
 
         # repeating schedule is harmless
-        pid2 = self.pd_cli.schedule_process(self.process_definition_id,
+        pid2 = self.pd_cli.schedule_process(
+            self.process_definition_id,
             process_schedule, configuration={}, process_id=pid, name=proc_name)
         self.assertEqual(pid, pid2)
 
