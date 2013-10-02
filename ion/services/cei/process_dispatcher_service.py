@@ -238,14 +238,39 @@ class ProcessDispatcherService(BaseProcessDispatcherService):
             raise BadRequest("process executable must have module and class")
         return self.backend.create_definition(process_definition, process_definition_id)
 
-    def read_process_definition(self, process_definition_id=''):
+    def update_process_definition(self, process_definition=None, process_definition_id=None):
+        """Creates a Process Definition based on given object.
+
+        @param process_definition    ProcessDefinition
+        @param process_definition_id desired process definition ID
+        @retval process_definition_id    str
+        @throws BadRequest    if object passed has _id or _rev attribute
+        """
+        # validate executable
+        executable = process_definition.executable
+        if not executable:
+            raise BadRequest("invalid process executable")
+
+        module = executable.get('module')
+        cls = executable.get('class')
+
+        if not (module and cls):
+            raise BadRequest("process executable must have module and class")
+        return self.backend.update_definition(process_definition, process_definition_id)
+
+    def read_process_definition(self, process_definition_id='', process_definition_name=''):
         """Returns a Process Definition as object.
 
         @param process_definition_id    str
         @retval process_definition    ProcessDefinition
         @throws NotFound    object with specified id does not exist
         """
-        return self.backend.read_definition(process_definition_id)
+        if not (process_definition_id or process_definition_name):
+            raise BadRequest("need a process definition id or name")
+        if process_definition_id:
+            return self.backend.read_definition(process_definition_id)
+        else:
+            return self.backend.read_definition_by_name(process_definition_name)
 
     def delete_process_definition(self, process_definition_id=''):
         """Deletes/retires a Process Definition.
@@ -297,7 +322,7 @@ class ProcessDispatcherService(BaseProcessDispatcherService):
             log.debug("Tried to create Process %s, but already exists. This is normally ok.", process_id)
         return process_id
 
-    def schedule_process(self, process_definition_id='', schedule=None, configuration=None, process_id='', name=''):
+    def schedule_process(self, process_definition_id='', process_definition_name='', schedule=None, configuration=None, process_id='', name=''):
         """Schedule a process definition for execution on an Execution Engine. If no process id is given,
         a new unique ID is generated.
 
@@ -309,9 +334,16 @@ class ProcessDispatcherService(BaseProcessDispatcherService):
         @throws BadRequest    if object passed has _id or _rev attribute
         @throws NotFound    object with specified id does not exist
         """
-        if not process_definition_id:
-            raise NotFound('No process definition was provided')
-        process_definition = self.backend.read_definition(process_definition_id)
+        if process_definition_id:
+            process_definition = self.backend.read_definition(process_definition_id)
+
+        elif process_definition_name:
+            log.info("scheduling process by definition name: '%s'", process_definition_name)
+            process_definition = self.backend.read_definition_by_name(process_definition_name)
+            process_definition_id = process_definition._id
+
+        else:
+            raise NotFound('No process definition id or name was provided')
 
         try:
             process_definition.executable['module']
@@ -1173,11 +1205,22 @@ def _ion_process_from_core(core_process):
     if not ion_process_state:
         log.debug("Process has unknown state: process=%s state=%s",
             process_id, state)
+    detail = {
+        'hostname': core_process.get('hostname'),
+        'assigned': core_process.get('assigned'),
+        'starts': core_process.get('starts'),
+        'constraints': core_process.get('constraints'),
+        'node_exclusive': core_process.get('node_exclusive'),
+        'queueing_mode': core_process.get('queueing_mode'),
+        'restart_mode': core_process.get('restart_mode'),
+    }
 
     process = Process(process_id=process_id,
         process_state=ion_process_state,
         process_configuration=config,
-        name=core_process.get('name'))
+        name=core_process.get('name'),
+        detail=detail
+    )
 
     return process
 
