@@ -81,7 +81,7 @@ class ServiceGatewayService(BaseServiceGatewayService):
         service_gateway_instance = self
 
         self.server_hostname = self.CFG.get_safe('container.service_gateway.web_server.hostname', DEFAULT_WEB_SERVER_HOSTNAME)
-        self.server_port = self.CFG.get_safe('container.service_gateway.web_server.port', DEFAULT_WEB_SERVER_PORT)
+        self.server_port = int(self.CFG.get_safe('container.service_gateway.web_server.port', DEFAULT_WEB_SERVER_PORT))
         self.web_server_enabled = self.CFG.get_safe('container.service_gateway.web_server.enabled', True)
         self.web_logging = self.CFG.get_safe('container.service_gateway.web_server.log')
         self.log_errors = self.CFG.get_safe('container.service_gateway.log_errors', True)
