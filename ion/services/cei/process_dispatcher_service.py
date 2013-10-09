@@ -413,6 +413,17 @@ class ProcessDispatcherService(BaseProcessDispatcherService):
         """
         return self.backend.list()
 
+    def set_system_boot(self, system_boot):
+        """Enable or disable system boot mode
+
+        @param system_boot   bool
+        @retval None
+        """
+        try:
+            self.backend.set_system_boot(system_boot)
+        except core_exceptions.BadRequestError, e:
+            raise BadRequest(str(e))
+
     def _get_process_name(self, process_definition, configuration):
 
         base_name = ""
